@@ -20,12 +20,21 @@ type UserCreateForm struct {
 	Password string
 }
 
-type UserDeleteForm struct {
-	ID string
-}
-
 type UserLoginForm struct {
 	Username string
 	Email    string
 	Password string
+}
+
+type UserRefreshTokenForm struct {
+	id           string
+	RefreshToken string
+}
+
+type UserPasswordResetForm struct {
+	Username         string
+	Email            string
+	OldPassword      string
+	NewPassword      string
+	NewPasswordAgain string
 }

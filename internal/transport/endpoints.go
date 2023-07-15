@@ -4,18 +4,17 @@ import (
 	"context"
 
 	"github.com/SigiReuvan/iam-service/internal"
-	"github.com/SigiReuvan/iam-service/internal/service"
 	"github.com/go-kit/kit/endpoint"
 )
 
 type Endpoints struct {
 	CreateUser       endpoint.Endpoint
+	GetUser          endpoint.Endpoint
 	DeleteUser       endpoint.Endpoint
 	UserLogin        endpoint.Endpoint
 	UserLogout       endpoint.Endpoint
 	UserAuthenticate endpoint.Endpoint
 	UserAuthorize    endpoint.Endpoint
-	UserProfile      endpoint.Endpoint
 	RefreshToken     endpoint.Endpoint
 	PasswordReset    endpoint.Endpoint
 }
@@ -23,7 +22,7 @@ type Endpoints struct {
 func makeCreateUserEndpoint(svc internal.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(createUserRequest)
-		user := internal.User{
+		user := internal.UserCreateForm{
 			Username: req.Username,
 			Email:    req.Email,
 			Password: req.Password,
@@ -33,6 +32,24 @@ func makeCreateUserEndpoint(svc internal.Service) endpoint.Endpoint {
 			return createUserResponse{"", err.Error()}, err
 		}
 		return createUserResponse{Message: result, Err: ""}, err
+	}
+}
+
+func makeGetUserEndpoint(svc internal.Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(getUserRequest)
+		result, err := svc.GetUser(ctx, req.ID)
+		if err != nil {
+			return getUserResponse{Err: err.Error()}, err
+		}
+		return getUserResponse{
+			ID:        result.ID,
+			Username:  result.Username,
+			Email:     result.Email,
+			Role:      result.Role,
+			CreatedAt: result.CreatedAt,
+			UpdatedAt: result.UpdatedAt,
+			Err:       ""}, nil
 	}
 }
 
@@ -50,8 +67,12 @@ func makeDeleteUserEndpoint(svc internal.Service) endpoint.Endpoint {
 func makeUserLoginEndpoint(svc internal.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(userLoginRequest)
-		user := service.User(req.Username, req.Email, req.Password)
-		token, err := svc.UserLogin(ctx, user)
+		u := internal.UserLoginForm{
+			Username: req.Username,
+			Email:    req.Email,
+			Password: req.Password,
+		}
+		token, err := svc.UserLogin(ctx, u)
 		if err != nil {
 			return userLoginResponse{"", err.Error()}, err
 		}
@@ -61,10 +82,9 @@ func makeUserLoginEndpoint(svc internal.Service) endpoint.Endpoint {
 
 func makeUserLogoutEndpoint(svc internal.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(userLogoutRequest)
-		user := service.User(req.Username, req.Email, req.Password)
-		if err := svc.UserLogout(ctx, user); err != nil {
-			return userLogoutResponse{err.Error()}, err
+		result, err := svc.UserLogout(ctx)
+		if err != nil {
+			return userLogoutResponse{Message: result, Err: err.Error()}, err
 		}
 		return userLogoutResponse{Err: ""}, nil
 	}
@@ -72,9 +92,7 @@ func makeUserLogoutEndpoint(svc internal.Service) endpoint.Endpoint {
 
 func makeRefreshTokenEndpoint(svc internal.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(refreshTokenRequest)
-		user := service.User(req.Username, req.Email, req.Password)
-		token, err := svc.RefreshToken(ctx, user)
+		token, err := svc.RefreshToken(ctx)
 		if err != nil {
 			return refreshTokenResponse{"", err.Error()}, err
 		}
@@ -84,45 +102,38 @@ func makeRefreshTokenEndpoint(svc internal.Service) endpoint.Endpoint {
 
 func makePasswordResetEndpoint(svc internal.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(userLogoutRequest)
-		user := service.User(req.Username, req.Email, req.Password)
-		if err := svc.PasswordReset(ctx, user); err != nil {
-			return passwordResetResponse{err.Error()}, err
+		req := request.(passwordResetRequest)
+		u := internal.UserPasswordResetForm{
+			Username:         req.Username,
+			Email:            req.Email,
+			OldPassword:      req.Password,
+			NewPassword:      req.NewPassword,
+			NewPasswordAgain: req.NewPasswordAgain,
 		}
-		return passwordResetResponse{Err: ""}, nil
+		result, err := svc.PasswordReset(ctx, u)
+		if err != nil {
+			return passwordResetResponse{Message: result, Err: err.Error()}, err
+		}
+		return passwordResetResponse{Message: result, Err: ""}, nil
 	}
 }
 
 func makeUserAuthenticateEndpoint(svc internal.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(userAuthenticateRequest)
-		user := service.User(req.Username, req.Email, req.Password)
-		if err := svc.UserAuthenticate(ctx, user); err != nil {
-			return userAuthenticateResponse{err.Error()}, err
+		result, err := svc.UserAuthenticate(ctx)
+		if err != nil {
+			return userAuthenticateResponse{Message: result, Err: err.Error()}, err
 		}
-		return userAuthenticateResponse{Err: ""}, nil
+		return userAuthenticateResponse{Message: result, Err: ""}, nil
 	}
 }
 
 func makeUserAuthorizeEndpoint(svc internal.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(userAuthenticateRequest)
-		user := service.User(req.Username, req.Email, req.Password)
-		if err := svc.UserAuthorize(ctx, user); err != nil {
-			return userAuthorizeResponse{err.Error()}, err
-		}
-		return userAuthorizeResponse{Err: ""}, nil
-	}
-}
-
-func makeUserProfileEndpoint(svc internal.Service) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(userProfileRequest)
-		user := service.User(req.Username, req.Email, req.Password)
-		result, err := svc.UserProfile(ctx, user)
+		result, err := svc.UserAuthorize(ctx)
 		if err != nil {
-			return userProfileResponse{Err: err.Error()}, err
+			return userAuthorizeResponse{Message: result, Err: err.Error()}, err
 		}
-		return userProfileResponse{ID: result.ID, Username: result.Username, Email: result.Email, Err: ""}, nil
+		return userAuthorizeResponse{Message: result, Err: ""}, nil
 	}
 }

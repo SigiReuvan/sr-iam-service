@@ -5,10 +5,12 @@ import (
 	"os"
 
 	"github.com/SigiReuvan/iam-service/internal/middleware"
-	"github.com/SigiReuvan/iam-service/internal/repository"
+	"github.com/SigiReuvan/iam-service/internal/repository/cache"
+	"github.com/SigiReuvan/iam-service/internal/repository/relational"
 	"github.com/SigiReuvan/iam-service/internal/service"
 	"github.com/SigiReuvan/iam-service/internal/transport"
 	"github.com/go-kit/log"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -28,8 +30,15 @@ func main() {
 		logger.Log("err", err)
 	}
 
-	rep := repository.New(db, logger)
-	svc := middleware.NewLoggingMiddleware(logger, service.NewService(rep, logger))
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81",
+		DB:       0,
+	})
+
+	rep := relational.New(db, logger)
+	cache := cache.New(rdb, logger)
+	svc := middleware.NewLoggingMiddleware(logger, service.NewService(rep, cache, logger))
 
 	r := transport.NewHttpServer(svc)
 

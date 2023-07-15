@@ -1,5 +1,7 @@
 package transport
 
+import "time"
+
 type createUserRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
@@ -10,7 +12,19 @@ type createUserResponse struct {
 	Message string `json:"message,omitempty"`
 	Err     string `json:"err,omitempty"`
 }
+type getUserRequest struct {
+	ID string
+}
 
+type getUserResponse struct {
+	ID        string    `json:"id,omitempty"`
+	Username  string    `json:"username,omitempty"`
+	Email     string    `json:"email,omitempty"`
+	Role      string    `json:"role,omitempty"`
+	CreatedAt time.Time `json:"createdAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt,omitempty"`
+	Err       string    `json:"err,omitempty"`
+}
 type deleteUserRequest struct {
 	ID string `json:"id"`
 }
@@ -31,53 +45,19 @@ type userLoginResponse struct {
 	Err   string `json:"err,omitempty"`
 }
 
-type userLogoutRequest struct {
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Password string `json:"password"`
-}
-
 type userLogoutResponse struct {
-	Err string `json:"err,omitempty"`
-}
-
-type userAuthenticateRequest struct {
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Password string `json:"password"`
+	Message string `json:"message,omitempty"`
+	Err     string `json:"err,omitempty"`
 }
 
 type userAuthenticateResponse struct {
-	Err string `json:"err,omitempty"`
-}
-
-type userAuthorizeRequest struct {
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Password string `json:"password"`
+	Message string `json:"message,omitempty"`
+	Err     string `json:"err,omitempty"`
 }
 
 type userAuthorizeResponse struct {
-	Err string `json:"err,omitempty"`
-}
-
-type userProfileRequest struct {
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Password string `json:"password"`
-}
-
-type userProfileResponse struct {
-	ID       string `json:"id,omitempty"`
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Err      string `json:"err,omitempty"`
-}
-
-type refreshTokenRequest struct {
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Password string `json:"password"`
+	Message string `json:"message,omitempty"`
+	Err     string `json:"err,omitempty"`
 }
 
 type refreshTokenResponse struct {
@@ -86,11 +66,16 @@ type refreshTokenResponse struct {
 }
 
 type passwordResetRequest struct {
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Password string `json:"password"`
+	Username         string `json:"username,omitempty"`
+	Email            string `json:"email,omitempty"`
+	Password         string `json:"password"`
+	NewPassword      string `json:"newPassword"`
+	NewPasswordAgain string `json:"newPasswordAgain"`
 }
 
 type passwordResetResponse struct {
-	Err string `json:"err,omitempty"`
+	Message string `json:"message,omitempty"`
+	Err     string `json:"err,omitempty"`
 }
+
+type emptyRequest struct{}
