@@ -12,99 +12,93 @@ var (
 	ErrBadPassword    = errors.New("password is longer than 36 characters")
 	ErrService        = errors.New("unable to handle request")
 	ErrNotImplemented = errors.New("not implemented")
+	ErrUnableToLogin  = errors.New("unable to login")
 )
 
 type service struct {
 	repository internal.Repository
+	session    internal.Session
 	logger     log.Logger
 }
 
-func NewService(rep internal.Repository, logger log.Logger) internal.Service {
+func NewService(rep internal.Repository, session internal.Session, logger log.Logger) internal.Service {
 	return &service{
 		repository: rep,
+		session:    session,
 		logger:     logger,
 	}
 }
 
-func User(username string, email string, password string) internal.User {
-	return internal.User{
-		Username: username,
-		Email:    email,
-		Password: password,
-	}
-}
-
-func (s *service) CreateUser(ctx context.Context, user internal.User) (string, error) {
-	user, err := defaultUser(user)
+func (svc *service) CreateUser(ctx context.Context, user internal.UserCreateForm) (string, error) {
+	u, err := defaultUser(user)
 	if err != nil {
 		return "", err
 	}
-	result, err := s.repository.CreateUser(ctx, user)
+	result, err := svc.repository.CreateUser(ctx, u)
 	if err != nil {
 		return "", err
 	}
 	return result, nil
 }
 
-func (s *service) DeleteUser(ctx context.Context, id string) (string, error) {
-	user := internal.User{
+func (svc *service) GetUser(ctx context.Context, id string) (internal.User, error) {
+	u := internal.User{
 		ID: id,
 	}
-	result, err := s.repository.DeleteUser(ctx, user)
-	if err != nil {
-		return "", err
-	}
-	return result, nil
-}
-
-func (s *service) UserLogin(ctx context.Context, user internal.User) (string, error) {
-	token, err := s.repository.UserLogin(ctx, user)
-	if err != nil {
-		return "", err
-	}
-	return token, nil
-}
-
-func (s *service) UserLogout(ctx context.Context, user internal.User) error {
-	if err := s.repository.UserLogout(ctx, user); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *service) UserAuthenticate(ctx context.Context, user internal.User) error {
-	if err := s.repository.UserAuthenticate(ctx, user); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *service) UserAuthorize(ctx context.Context, user internal.User) error {
-	if err := s.repository.UserAuthorize(ctx, user); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *service) UserProfile(ctx context.Context, user internal.User) (internal.User, error) {
-	result, err := s.repository.UserProfile(ctx, user)
+	result, err := svc.repository.GetUser(ctx, u)
 	if err != nil {
 		return internal.User{}, err
 	}
 	return result, nil
 }
 
-func (s *service) RefreshToken(ctx context.Context, user internal.User) (string, error) {
-	result, err := s.repository.RefreshToken(ctx, user)
+func (svc *service) DeleteUser(ctx context.Context, id string) (string, error) {
+	u := internal.User{
+		ID: id,
+	}
+	result, err := svc.repository.DeleteUser(ctx, u)
 	if err != nil {
 		return "", err
 	}
 	return result, nil
 }
 
-func (s *service) PasswordReset(ctx context.Context, user internal.User) error {
-	if err := s.repository.PasswordReset(ctx, user); err != nil {
-		return err
+func (svc *service) UserLogin(ctx context.Context, user internal.UserLoginForm) (string, error) {
+	u := internal.User{
+		Username: user.Username,
+		Email:    user.Email,
+		Password: user.Password,
 	}
-	return nil
+	find, err := svc.repository.UserLogin(ctx, u)
+	if err != nil {
+		return "", err
+	}
+	if find == "success" {
+		token, err := svc.session.UserLogin(ctx, user)
+		if err != nil {
+			return "", nil
+		}
+		return token, nil
+	}
+	return "", ErrUnableToLogin
+}
+
+func (svc *service) UserLogout(ctx context.Context) (string, error) {
+	return "", ErrNotImplemented
+}
+
+func (svc *service) UserAuthenticate(ctx context.Context) (string, error) {
+	return "", ErrNotImplemented
+}
+
+func (svc *service) UserAuthorize(ctx context.Context) (string, error) {
+	return "", ErrNotImplemented
+}
+
+func (svc *service) RefreshToken(ctx context.Context) (string, error) {
+	return "", ErrNotImplemented
+}
+
+func (svc *service) PasswordReset(ctx context.Context, user internal.UserPasswordResetForm) (string, error) {
+	return "", ErrNotImplemented
 }

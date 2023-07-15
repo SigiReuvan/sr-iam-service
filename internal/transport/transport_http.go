@@ -13,11 +13,17 @@ import (
 func NewHttpServer(svc internal.Service) *mux.Router {
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorEncoder(encodeErrorResponse),
-		httptransport.ServerBefore(setCookies),
+		// httptransport.ServerBefore(setCookies),
 	}
 	createUserHandler := httptransport.NewServer(
 		makeCreateUserEndpoint(svc),
 		decodeCreateUserRequest,
+		encodeResponse,
+		options...,
+	)
+	getUserHandler := httptransport.NewServer(
+		makeGetUserEndpoint(svc),
+		decodeGetUserRequest,
 		encodeResponse,
 		options...,
 	)
@@ -35,32 +41,25 @@ func NewHttpServer(svc internal.Service) *mux.Router {
 	)
 	userLogoutHandler := httptransport.NewServer(
 		makeUserLogoutEndpoint(svc),
-		decodeUserLogoutRequest,
+		decodeEmtpyRequest,
 		encodeResponse,
 		options...,
 	)
 	userAuthenticateHandler := httptransport.NewServer(
 		makeUserAuthenticateEndpoint(svc),
-		decodeUserAuthenticate,
+		decodeEmtpyRequest,
 		encodeResponse,
 		options...,
 	)
 	userAuthorizeHandler := httptransport.NewServer(
 		makeUserAuthorizeEndpoint(svc),
-		decodeUserAuthorize,
-		encodeResponse,
-		options...,
-	)
-
-	userProfileHandler := httptransport.NewServer(
-		makeUserProfileEndpoint(svc),
-		decodeUserProfile,
+		decodeEmtpyRequest,
 		encodeResponse,
 		options...,
 	)
 	refreshTokenHandler := httptransport.NewServer(
 		makeRefreshTokenEndpoint(svc),
-		decodeRefreshToken,
+		decodeEmtpyRequest,
 		encodeResponse,
 		options...,
 	)
@@ -73,6 +72,7 @@ func NewHttpServer(svc internal.Service) *mux.Router {
 	r := mux.NewRouter()
 
 	r.Methods("POST").Path("/v1/users").Handler(createUserHandler)
+	r.Methods("GET").Path("/v1/users/{id}").Handler(getUserHandler)
 	r.Methods("DELETE").Path("/v1/users").Handler(deleteUserHandler)
 	r.Methods("POST").Path("/v1/login").Handler(userLoginHandler)
 	r.Methods("POST").Path("/v1/logout").Handler(userLogoutHandler)
@@ -80,7 +80,6 @@ func NewHttpServer(svc internal.Service) *mux.Router {
 	r.Methods("POST").Path("/v1/password-reset").Handler(passwordResetHandler)
 	r.Methods("POST").Path("/v1/authenticate").Handler(userAuthenticateHandler)
 	r.Methods("POST").Path("/v1/authorize").Handler(userAuthorizeHandler)
-	r.Methods("GET").Path("/v1/profile").Handler(userProfileHandler)
 	return r
 }
 
@@ -112,48 +111,17 @@ func decodeDeleteUserRequest(ctx context.Context, r *http.Request) (interface{},
 	return request, nil
 }
 
+func decodeGetUserRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	request := getUserRequest{
+		ID: id,
+	}
+	return request, nil
+}
+
 func decodeUserLoginRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	var request userLoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
-	}
-	return request, nil
-}
-
-func decodeUserLogoutRequest(ctx context.Context, r *http.Request) (interface{}, error) {
-	var request userLogoutRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
-	}
-	return request, nil
-}
-
-func decodeUserAuthenticate(ctx context.Context, r *http.Request) (interface{}, error) {
-	var request userAuthenticateRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
-	}
-	return request, nil
-}
-
-func decodeUserAuthorize(ctx context.Context, r *http.Request) (interface{}, error) {
-	var request userAuthorizeRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
-	}
-	return request, nil
-}
-
-func decodeUserProfile(ctx context.Context, r *http.Request) (interface{}, error) {
-	var request userProfileRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
-	}
-	return request, nil
-}
-
-func decodeRefreshToken(ctx context.Context, r *http.Request) (interface{}, error) {
-	var request refreshTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
@@ -170,4 +138,9 @@ func decodePasswordReset(ctx context.Context, r *http.Request) (interface{}, err
 
 func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	return json.NewEncoder(w).Encode(response)
+}
+
+func decodeEmtpyRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	var request emptyRequest
+	return request, nil
 }

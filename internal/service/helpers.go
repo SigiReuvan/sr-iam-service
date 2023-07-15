@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func defaultUser(userForm internal.User) (user internal.User, err error) {
+func defaultUser(form internal.UserCreateForm) (user internal.User, err error) {
 	uuid, _ := uuid.NewV4()
 	id := uuid.String()
 
@@ -23,15 +23,15 @@ func defaultUser(userForm internal.User) (user internal.User, err error) {
 		return internal.User{}, ErrBadPassword
 	}
 
-	hashedPassword, err := hashPassword(userForm.Password)
+	hashedPassword, err := hashPassword(form.Password)
 	if err != nil {
 		return internal.User{}, err
 	}
 
 	return internal.User{
 		ID:               id,
-		Username:         userForm.Username,
-		Email:            userForm.Email,
+		Username:         form.Username,
+		Email:            form.Email,
 		Password:         hashedPassword,
 		Role:             "user",
 		VerificationCode: verificationCode,

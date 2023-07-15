@@ -1,4 +1,4 @@
-package repository
+package relational
 
 import (
 	"time"

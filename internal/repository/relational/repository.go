@@ -1,4 +1,4 @@
-package repository
+package relational
 
 import (
 	"context"
@@ -55,6 +55,10 @@ func (repo *repository) CreateUser(ctx context.Context, user internal.User) (str
 	return "success", nil
 }
 
+func (repo *repository) GetUser(ctx context.Context, user internal.User) (internal.User, error) {
+	return internal.User{}, ErrNotImplemented
+}
+
 func (repo *repository) DeleteUser(ctx context.Context, user internal.User) (string, error) {
 	result := repo.db.Delete(&user)
 	if result.Error != nil {
@@ -92,26 +96,6 @@ func (repo *repository) UserLogin(ctx context.Context, user internal.User) (stri
 	return "failed", ErrUsernameOrEmailMissing
 }
 
-func (repo *repository) UserLogout(ctx context.Context, user internal.User) error {
-	return ErrNotImplemented
-}
-
-func (repo *repository) UserAuthenticate(ctx context.Context, user internal.User) error {
-	return ErrNotImplemented
-}
-
-func (repo *repository) UserAuthorize(ctx context.Context, user internal.User) error {
-	return ErrNotImplemented
-}
-
-func (repo *repository) UserProfile(ctx context.Context, user internal.User) (internal.User, error) {
-	return internal.User{}, ErrNotImplemented
-}
-
-func (repo *repository) RefreshToken(ctx context.Context, user internal.User) (string, error) {
+func (repo *repository) PasswordReset(ctx context.Context, user internal.User) (string, error) {
 	return "", ErrNotImplemented
-}
-
-func (repo *repository) PasswordReset(ctx context.Context, user internal.User) error {
-	return ErrNotImplemented
 }
