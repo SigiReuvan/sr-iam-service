@@ -14,6 +14,20 @@ type User struct {
 	UpdatedAt        time.Time
 }
 
+type ActiveSession struct {
+	UID            string
+	Role           string
+	Creation       time.Time
+	Expiration     time.Time
+	SessionActions []SessionAction
+}
+
+type SessionAction struct {
+	Action       string
+	Resource     string
+	LastActivity time.Time
+}
+
 type UserCreateForm struct {
 	Username string
 	Email    string

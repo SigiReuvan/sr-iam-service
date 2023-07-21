@@ -5,7 +5,7 @@ import (
 )
 
 type Session interface {
-	UserLogin(ctx context.Context, form UserLoginForm) (string, error)
+	UserLogin(ctx context.Context, user User) (string, error)
 	UserLogout(ctx context.Context) (string, error)
 	UserAuthenticate(ctx context.Context) (string, error)
 	UserAuthorize(ctx context.Context) (string, error)
@@ -16,7 +16,7 @@ type Repository interface {
 	CreateUser(ctx context.Context, user User) (string, error)
 	GetUser(ctx context.Context, user User) (User, error)
 	DeleteUser(ctx context.Context, user User) (string, error)
-	UserLogin(ctx context.Context, user User) (string, error)
+	UserLogin(ctx context.Context, user UserLoginForm) (User, error)
 	PasswordReset(ctx context.Context, user User) (string, error)
 }
 

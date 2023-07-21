@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/SigiReuvan/iam-service/internal"
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func defaultUser(form internal.UserCreateForm) (user internal.User, err error) {
-	uuid, _ := uuid.NewV4()
-	id := uuid.String()
+	id := uuid.New().String()
 
 	verificationCode, err := generateVerificationCode()
 	if err != nil {

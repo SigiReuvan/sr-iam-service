@@ -13,7 +13,6 @@ import (
 func NewHttpServer(svc internal.Service) *mux.Router {
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorEncoder(encodeErrorResponse),
-		// httptransport.ServerBefore(setCookies),
 	}
 	createUserHandler := httptransport.NewServer(
 		makeCreateUserEndpoint(svc),
