@@ -25,7 +25,12 @@ func New(cache *redis.Client, logger log.Logger) internal.Session {
 	}
 }
 
-func (repo *repository) UserLogin(ctx context.Context, user internal.UserLoginForm) (string, error) {
+func (repo *repository) UserLogin(ctx context.Context, user internal.User) (string, error) {
+	repo.createSession(ctx, user)
+	err := repo.addAction(ctx, user, "LOGIN", "IAM")
+	if err != nil {
+		return "", err
+	}
 	return "", ErrNotImplemented
 }
 

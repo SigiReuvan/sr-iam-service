@@ -67,33 +67,33 @@ func (repo *repository) DeleteUser(ctx context.Context, user internal.User) (str
 	return "success", nil
 }
 
-func (repo *repository) UserLogin(ctx context.Context, user internal.User) (string, error) {
+func (repo *repository) UserLogin(ctx context.Context, user internal.UserLoginForm) (internal.User, error) {
 	if user.Username != "" {
-		var search internal.User
-		result := repo.db.Table("Users").Where("username = ?", user.Username).First(&search)
+		var u internal.User
+		result := repo.db.Table("Users").Where("username = ?", user.Username).First(&u)
 		if result.Error != nil {
-			return "failed", result.Error
+			return internal.User{}, result.Error
 		}
-		err := bcrypt.CompareHashAndPassword([]byte(search.Password), []byte(user.Password))
+		err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
 		if err != nil {
-			return "failed", ErrWrongPassword
+			return internal.User{}, ErrWrongPassword
 		}
-		return "success", nil
+		return u, nil
 	}
 
 	if user.Email != "" {
-		var search internal.User
-		result := repo.db.Table("Users").Where("email = ?", user.Email).First(&search)
+		var u internal.User
+		result := repo.db.Table("Users").Where("email = ?", user.Email).First(&u)
 		if result.Error != nil {
-			return "failed", result.Error
+			return internal.User{}, result.Error
 		}
-		err := bcrypt.CompareHashAndPassword([]byte(search.Password), []byte(user.Password))
+		err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
 		if err != nil {
-			return "failed", ErrWrongPassword
+			return internal.User{}, ErrWrongPassword
 		}
-		return "success", nil
+		return u, nil
 	}
-	return "failed", ErrUsernameOrEmailMissing
+	return internal.User{}, ErrUsernameOrEmailMissing
 }
 
 func (repo *repository) PasswordReset(ctx context.Context, user internal.User) (string, error) {

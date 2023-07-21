@@ -64,23 +64,17 @@ func (svc *service) DeleteUser(ctx context.Context, id string) (string, error) {
 }
 
 func (svc *service) UserLogin(ctx context.Context, user internal.UserLoginForm) (string, error) {
-	u := internal.User{
-		Username: user.Username,
-		Email:    user.Email,
-		Password: user.Password,
-	}
-	find, err := svc.repository.UserLogin(ctx, u)
+	u, err := svc.repository.UserLogin(ctx, user)
 	if err != nil {
-		return "", err
+		return "", ErrUnableToLogin
 	}
-	if find == "success" {
-		token, err := svc.session.UserLogin(ctx, user)
-		if err != nil {
-			return "", nil
-		}
-		return token, nil
+
+	token, err := svc.session.UserLogin(ctx, u)
+	if err != nil {
+		return "", ErrUnableToLogin
 	}
-	return "", ErrUnableToLogin
+	return token, nil
+
 }
 
 func (svc *service) UserLogout(ctx context.Context) (string, error) {
