@@ -19,6 +19,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 func main() {
@@ -28,33 +29,38 @@ func main() {
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
 
 	logger.Log("msg", "starting service")
-	defer logger.Log("msg", "stopping service")
 
 	// Load configuration
 	cfg := config.Load(logger)
+	gormCfg := &gorm.Config{}
+	gormCfg.Logger = gormLogger.Default.LogMode(gormLogger.Silent)
 
 	// Connect to PostgreSQL
 	dsn := "postgres://" + cfg.DBUser + ":" + cfg.DBPassword + "@" + cfg.DBHost + ":" + cfg.DBPort + "/" + cfg.DBName
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), gormCfg)
+
+	stopSvcMsg := "stopping service"
+
 	if err != nil {
 		errStr := util.FormatErrorToString(err)
 		logger.Log("err", "failed to connect to postgres", "detail", errStr)
+		logger.Log("msg", stopSvcMsg)
 		os.Exit(1)
 	}
-
-	logger.Log("msg", "hello world")
 
 	// Get the underlying sql.DB to perform further operations and graceful shutdown.
 	sqlDB, err := db.DB()
 	if err != nil {
 		errStr := util.FormatErrorToString(err)
 		logger.Log("err", "failed to retrieve sql.DB from gorm", "detail", errStr)
+		logger.Log("msg", stopSvcMsg)
 		os.Exit(1)
 	}
 	// Ping PostgreSQL to ensure the connection is healthy.
 	if err = sqlDB.Ping(); err != nil {
 		errStr := util.FormatErrorToString(err)
 		logger.Log("err", "failed to ping postgres", "detail", errStr)
+		logger.Log("msg", stopSvcMsg)
 		os.Exit(1)
 	}
 
@@ -68,6 +74,7 @@ func main() {
 	if err := rdb.Ping(context.Background()).Err(); err != nil {
 		errStr := util.FormatErrorToString(err)
 		logger.Log("err", "failed to ping redis", "detail", errStr)
+		logger.Log("msg", stopSvcMsg)
 		os.Exit(1)
 	}
 

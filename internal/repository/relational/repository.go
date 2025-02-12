@@ -6,7 +6,6 @@ import (
 
 	"github.com/SigiReuvan/iam-service/internal"
 	"github.com/go-kit/log"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -32,27 +31,28 @@ func New(db *gorm.DB, logger log.Logger) internal.Repository {
 }
 
 func (repo *repository) CreateUser(ctx context.Context, user internal.User) (string, error) {
-	unique, err := repo.checkUniqueness("username", user.Username)
-	if unique == "failed" && err != nil {
-		return "", err
-	}
-	if unique == "failed" && err == nil {
-		return "", ErrNotUniqueUsername
-	}
+	// unique, err := repo.checkUniqueness("username", user.Username)
+	// if unique == "failed" && err != nil {
+	// 	return "", err
+	// }
+	// if unique == "failed" && err == nil {
+	// 	return "", ErrNotUniqueUsername
+	// }
 
-	unique, err = repo.checkUniqueness("email", user.Email)
-	if unique == "failed" && err != nil {
-		return "", err
-	}
-	if unique == "failed" && err == nil {
-		return "", ErrNotUniqueEmail
-	}
+	// unique, err = repo.checkUniqueness("email", user.Email)
+	// if unique == "failed" && err != nil {
+	// 	return "", err
+	// }
+	// if unique == "failed" && err == nil {
+	// 	return "", ErrNotUniqueEmail
+	// }
 
-	result := repo.db.Create(&user)
-	if result.Error != nil {
-		return "", err
-	}
-	return "success", nil
+	// result := repo.db.Create(&user)
+	// if result.Error != nil {
+	// 	return "", err
+	// }
+	// return "success", nil
+	return "", ErrNotImplemented
 }
 
 func (repo *repository) GetUser(ctx context.Context, user internal.User) (internal.User, error) {
@@ -68,32 +68,33 @@ func (repo *repository) DeleteUser(ctx context.Context, user internal.User) (str
 }
 
 func (repo *repository) UserLogin(ctx context.Context, user internal.UserLoginForm) (internal.User, error) {
-	if user.Username != "" {
-		var u internal.User
-		result := repo.db.Table("Users").Where("username = ?", user.Username).First(&u)
-		if result.Error != nil {
-			return internal.User{}, result.Error
-		}
-		err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
-		if err != nil {
-			return internal.User{}, ErrWrongPassword
-		}
-		return u, nil
-	}
+	// if user.Username != "" {
+	// 	var u internal.User
+	// 	result := repo.db.Table("Users").Where("username = ?", user.Username).First(&u)
+	// 	if result.Error != nil {
+	// 		return internal.User{}, result.Error
+	// 	}
+	// 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
+	// 	if err != nil {
+	// 		return internal.User{}, ErrWrongPassword
+	// 	}
+	// 	return u, nil
+	// }
 
-	if user.Email != "" {
-		var u internal.User
-		result := repo.db.Table("Users").Where("email = ?", user.Email).First(&u)
-		if result.Error != nil {
-			return internal.User{}, result.Error
-		}
-		err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
-		if err != nil {
-			return internal.User{}, ErrWrongPassword
-		}
-		return u, nil
-	}
-	return internal.User{}, ErrUsernameOrEmailMissing
+	// if user.Email != "" {
+	// 	var u internal.User
+	// 	result := repo.db.Table("Users").Where("email = ?", user.Email).First(&u)
+	// 	if result.Error != nil {
+	// 		return internal.User{}, result.Error
+	// 	}
+	// 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password))
+	// 	if err != nil {
+	// 		return internal.User{}, ErrWrongPassword
+	// 	}
+	// 	return u, nil
+	// }
+	// return internal.User{}, ErrUsernameOrEmailMissing
+	return internal.User{}, ErrNotImplemented
 }
 
 func (repo *repository) PasswordReset(ctx context.Context, user internal.User) (string, error) {

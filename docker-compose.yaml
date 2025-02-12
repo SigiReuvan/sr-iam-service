@@ -8,6 +8,8 @@ services:
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_NAME=${POSTGRES_DB}
+      - DB_HOST=db
+      - REDIS_ADDR=cache:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     ports:
       - "8081:8081"
