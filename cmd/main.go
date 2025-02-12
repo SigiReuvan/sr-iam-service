@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/SigiReuvan/iam-service/cmd/internal/util"
+	"github.com/SigiReuvan/iam-service/config"
 	"github.com/SigiReuvan/iam-service/internal/middleware"
 	"github.com/SigiReuvan/iam-service/internal/repository/cache"
 	"github.com/SigiReuvan/iam-service/internal/repository/relational"
@@ -16,7 +22,7 @@ import (
 )
 
 func main() {
-	// TODO: Implement flags or config
+	// Initialize logger
 	var logger log.Logger
 	logger = log.NewLogfmtLogger(os.Stderr)
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
@@ -24,25 +30,89 @@ func main() {
 	logger.Log("msg", "starting service")
 	defer logger.Log("msg", "stopping service")
 
-	dsn := "postgres://postgres:postgres@localhost:5432/postgres"
+	// Load configuration
+	cfg := config.Load(logger)
+
+	// Connect to PostgreSQL
+	dsn := "postgres://" + cfg.DBUser + ":" + cfg.DBPassword + "@" + cfg.DBHost + ":" + cfg.DBPort + "/" + cfg.DBName
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		logger.Log("err", err)
+		errStr := util.FormatErrorToString(err)
+		logger.Log("err", "failed to connect to postgres", "detail", errStr)
+		os.Exit(1)
 	}
 
+	logger.Log("msg", "hello world")
+
+	// Get the underlying sql.DB to perform further operations and graceful shutdown.
+	sqlDB, err := db.DB()
+	if err != nil {
+		errStr := util.FormatErrorToString(err)
+		logger.Log("err", "failed to retrieve sql.DB from gorm", "detail", errStr)
+		os.Exit(1)
+	}
+	// Ping PostgreSQL to ensure the connection is healthy.
+	if err = sqlDB.Ping(); err != nil {
+		errStr := util.FormatErrorToString(err)
+		logger.Log("err", "failed to ping postgres", "detail", errStr)
+		os.Exit(1)
+	}
+
+	// Connect to Redis
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81",
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
 		DB:       0,
 	})
+	// Ping Redis to ensure the connection is healthy.
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		errStr := util.FormatErrorToString(err)
+		logger.Log("err", "failed to ping redis", "detail", errStr)
+		os.Exit(1)
+	}
 
+	// Initialize repositories and services
 	rep := relational.New(db, logger)
-	cache := cache.New(rdb, logger)
-	svc := middleware.NewLoggingMiddleware(logger, service.NewService(rep, cache, logger))
+	cacheRepo := cache.New(rdb, logger)
+	svc := middleware.NewLoggingMiddleware(logger, service.NewService(rep, cacheRepo, logger))
+	handler := transport.NewHttpServer(svc)
 
-	r := transport.NewHttpServer(svc)
+	// Create the HTTP server
+	srv := &http.Server{
+		Addr:    ":8081",
+		Handler: handler,
+	}
 
-	// TODO: Implement Gracefull shutdown
-	logger.Log("msg", "starting server", "transport", "http", "addr", "8081")
-	logger.Log("err", http.ListenAndServe(":8081", r))
+	// Start the HTTP server in a separate goroutine.
+	go func() {
+		logger.Log("msg", "starting server", "transport", "http", "addr", "8081")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Log("err", "HTTP server error", "detail", err)
+		}
+	}()
+
+	// Create channel to listen for interrupt or terminate signals.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+	logger.Log("msg", "shutting down server...")
+
+	// Create a context with timeout for the graceful shutdown.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Log("err", "server forced to shutdown", "detail", err)
+	}
+
+	// Close the Postgres connection gracefully.
+	if err := sqlDB.Close(); err != nil {
+		logger.Log("err", "failed to close postgres connection", "detail", err)
+	}
+
+	// Close the Redis connection gracefully.
+	if err := rdb.Close(); err != nil {
+		logger.Log("err", "failed to close redis connection", "detail", err)
+	}
+
+	logger.Log("msg", "server exiting")
 }
